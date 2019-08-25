@@ -1,56 +1,59 @@
+package geo.detector;
+
 import java.io.*;
 import java.util.*;
 
-public class Main {
-    public static HashMap<String, ArrayList<Point>> Points = new HashMap<>();
-    public static HashMap<Integer, Point> Requests = new HashMap<>();
-    public static HashMap<String, ArrayList<Point>> Hulls = new HashMap<>();
+public class Solver {
+    private HashMap<String, ArrayList<Point>> Points = new HashMap<>();
+    private HashMap<Integer, Point> Requests = new HashMap<>();
+    private HashMap<String, ArrayList<Point>> Hulls = new HashMap<>();
 
+    public void addPoint(String index, float latt, float longt) {
+        if (Points.containsKey(index)){
+            ArrayList<Point> newList = Points.get(index);
+            newList.add(new Point(latt, longt));
+            Points.replace(index, Points.get(index), newList);
+            //System.out.println("new point in heap");
+        }
+        else{
+            ArrayList<Point> addList = new ArrayList<>();
+            addList.add(new Point(latt, longt));
+            Points.put(index, addList);
+            //System.out.println("new heap");
+        }
+    }
 
-    public static void readFile(String name){
-        BufferedReader reader;
-        try {
-            reader = new BufferedReader(new FileReader (name));
+    public void addRequest(int id, float latt, float longt) {
+        Point newPoint = new Point(latt, longt);
+        Requests.put(id, newPoint);
+    }
+
+    public Solver readFromFile(String name) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new FileReader (name))){
             String line = reader.readLine();
             while (line != null) {
                 String[] data = line.split("\\s+");
                 //String[] data = line.split(" ");
-
                 if (data.length == 4){
                     float latt = Float.parseFloat(data[1]);
                     float longt = Float.parseFloat(data[2]);
                     String index = data[3];
-                    if (Points.containsKey(index)){
-                        ArrayList<Point> newList = Points.get(index);
-                        newList.add(new Point(latt, longt));
-                        Points.replace(index, Points.get(index), newList);
-                        //System.out.println("new point in heap");
-                    }
-                    else{
-                        ArrayList<Point> addList = new ArrayList<>();
-                        addList.add(new Point(latt, longt));
-                        Points.put(index, addList);
-                        //System.out.println("new heap");
-                    }
+                    addPoint(index, latt, longt);
                 }
                 else{
                     int id = Integer.parseInt(data[0]);
                     float latt = Float.parseFloat(data[1]);
                     float longt = Float.parseFloat(data[2]);
-                    Point newPoint = new Point(latt, longt);
-                    Requests.put(id, newPoint);
-                    System.out.println("added");
+                    addRequest(id, latt, longt);
                 }
                 line = reader.readLine();
             }
         }
-        catch (IOException e){
-            System.out.println("Reading file error. Main/ReadFile.");
-        }
+        return this;
     }
 
 
-    public static void BuildHulls(){
+    public void BuildHulls(){
         for (String key: Points.keySet()){
             Point[] pts = new Point[Points.get(key).size()];
             for (int i = 0; i < Points.get(key).size(); i++){
@@ -82,41 +85,19 @@ public class Main {
         return hit;
     }
 
-    public static void Answer(){
-        BufferedWriter writer = null;
-        try {
-            writer = new BufferedWriter(new FileWriter("Result.txt", true));
-        }
-        catch (Exception e){
-            System.out.println("Open Result.txt file error. Main/Answer");
-        }
+    public Map<Integer, String> Answer(){
+        BuildHulls();
+        Map<Integer, String> result = new HashMap<>();
 
         for (Integer key: Requests.keySet()){
             Point pt = Requests.get(key);
             for (String key1: Hulls.keySet()){
                 if (PointInPolygon(pt.x(), pt.y(), Hulls.get(key1)) == true){
-                    try {
-                        writer.write(key + " " + key1 + "\n");
-                    }
-                    catch (Exception e){
-                        System.out.println("Writing in file error. Main/Answer");
-                    }
+                        result.put(key, key1);
                     break;
                 }
             }
         }
-        try {
-            writer.close();
-        }
-        catch (Exception e){}
-    }
-
-
-
-    public static void main(String[] args) {
-        readFile("geo_tag2.tsv");
-        //readFile("a.txt");
-        BuildHulls();
-        Answer();
+        return result;
     }
 }

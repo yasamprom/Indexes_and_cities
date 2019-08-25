@@ -1,4 +1,7 @@
+package geo.detector;
+
 import java.util.Comparator;
+
 //описание точки
 public class Point implements Comparable<Point>{
 

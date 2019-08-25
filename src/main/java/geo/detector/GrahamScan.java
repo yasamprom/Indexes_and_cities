@@ -1,3 +1,5 @@
+package geo.detector;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Stack;
