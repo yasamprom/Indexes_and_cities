@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.Stack;
 
 public class GrahamScan {
-    private Stack<Point> hull = new Stack<Point>();
+    private Stack<Point> hull = new Stack<>();
 
     public GrahamScan(Point[] pts) {
         int n = pts.length; //копия числа вершин
@@ -44,15 +44,9 @@ public class GrahamScan {
         assert isConvex();
     }
 
-    public Iterable<Point> hull() {
+    public Stack<Point> hull() {
         Stack<Point> s = new Stack<Point>();
         for (Point p : hull) s.push(p);
-        return s;
-    }
-
-    public ArrayList<Point> hullModified() {
-        ArrayList<Point> s = new ArrayList<>();
-        for (Point p : hull) s.add(p);
         return s;
     }
 

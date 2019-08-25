@@ -1,71 +1,17 @@
 package geo.detector;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.*;
 
+
 public class Solver {
-    private HashMap<String, ArrayList<Point>> Points = new HashMap<>();
-    private HashMap<Integer, Point> Requests = new HashMap<>();
-    private HashMap<String, ArrayList<Point>> Hulls = new HashMap<>();
+    private HashMap<String, List<Point>> points = new HashMap<>();
+    private HashMap<Integer, Point> requests = new HashMap<>();
+    private HashMap<String, List<Point>> hulls = new HashMap<>();
 
-    public void addPoint(String index, float latt, float longt) {
-        if (Points.containsKey(index)){
-            ArrayList<Point> newList = Points.get(index);
-            newList.add(new Point(latt, longt));
-            Points.replace(index, Points.get(index), newList);
-            //System.out.println("new point in heap");
-        }
-        else{
-            ArrayList<Point> addList = new ArrayList<>();
-            addList.add(new Point(latt, longt));
-            Points.put(index, addList);
-            //System.out.println("new heap");
-        }
-    }
-
-    public void addRequest(int id, float latt, float longt) {
-        Point newPoint = new Point(latt, longt);
-        Requests.put(id, newPoint);
-    }
-
-    public Solver readFromFile(String name) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new FileReader (name))){
-            String line = reader.readLine();
-            while (line != null) {
-                String[] data = line.split("\\s+");
-                //String[] data = line.split(" ");
-                if (data.length == 4){
-                    float latt = Float.parseFloat(data[1]);
-                    float longt = Float.parseFloat(data[2]);
-                    String index = data[3];
-                    addPoint(index, latt, longt);
-                }
-                else{
-                    int id = Integer.parseInt(data[0]);
-                    float latt = Float.parseFloat(data[1]);
-                    float longt = Float.parseFloat(data[2]);
-                    addRequest(id, latt, longt);
-                }
-                line = reader.readLine();
-            }
-        }
-        return this;
-    }
-
-
-    public void BuildHulls(){
-        for (String key: Points.keySet()){
-            Point[] pts = new Point[Points.get(key).size()];
-            for (int i = 0; i < Points.get(key).size(); i++){
-                pts[i] = Points.get(key).get(i);                                       //???
-            }
-            GrahamScan graham = new GrahamScan(pts);
-            System.out.println(graham.hullModified().size());
-            Hulls.put(key, graham.hullModified());
-        }
-    }
-
-    public static boolean PointInPolygon(float x, float y, ArrayList<Point> points) {
+    private static boolean pointInPolygon(float x, float y, List<Point> points) {
         Point p0 = points.get(points.size() - 1);
         Point p1 = points.get(0);
         boolean below0 = (y <= p0.y());
@@ -85,15 +31,65 @@ public class Solver {
         return hit;
     }
 
-    public Map<Integer, String> Answer(){
-        BuildHulls();
-        Map<Integer, String> result = new HashMap<>();
+    public void addPoint(String geoTag, float latitude, float longitude) {
+        if (points.containsKey(geoTag)) {
+            List<Point> newList = points.get(geoTag);
+            newList.add(new Point(latitude, longitude));
+            points.replace(geoTag, points.get(geoTag), newList);
+        } else {
+            ArrayList<Point> addList = new ArrayList<>();
+            addList.add(new Point(latitude, longitude));
+            points.put(geoTag, addList);
+        }
+    }
 
-        for (Integer key: Requests.keySet()){
-            Point pt = Requests.get(key);
-            for (String key1: Hulls.keySet()){
-                if (PointInPolygon(pt.x(), pt.y(), Hulls.get(key1)) == true){
-                        result.put(key, key1);
+    public void addRequest(int id, float latitude, float longitude) {
+        Point newPoint = new Point(latitude, longitude);
+        requests.put(id, newPoint);
+    }
+
+    public Solver readFromFile(String name) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new FileReader(name))) {
+            String line = reader.readLine();
+            while (line != null) {
+                String[] data = line.split("\\s+");
+                //String[] data = line.split(" ");
+                if (data.length == 4) {
+                    float latt = Float.parseFloat(data[1]);
+                    float longt = Float.parseFloat(data[2]);
+                    String index = data[3];
+                    addPoint(index, latt, longt);
+                } else {
+                    int id = Integer.parseInt(data[0]);
+                    float latt = Float.parseFloat(data[1]);
+                    float longt = Float.parseFloat(data[2]);
+                    addRequest(id, latt, longt);
+                }
+                line = reader.readLine();
+            }
+        }
+        return this;
+    }
+
+    private void buildHulls() {
+        for (String key : points.keySet()) {
+            Point[] pts = new Point[points.get(key).size()];
+            for (int i = 0; i < points.get(key).size(); i++) {
+                pts[i] = points.get(key).get(i);
+            }
+            GrahamScan graham = new GrahamScan(pts);
+            hulls.put(key, Collections.unmodifiableList(graham.hull()));
+        }
+    }
+
+    public Map<Integer, String> buildAnswer() {
+        buildHulls();
+        Map<Integer, String> result = new HashMap<>();
+        for (Integer key : requests.keySet()) {
+            Point pt = requests.get(key);
+            for (String key1 : hulls.keySet()) {
+                if (pointInPolygon(pt.x(), pt.y(), hulls.get(key1))) {
+                    result.put(key, key1);
                     break;
                 }
             }

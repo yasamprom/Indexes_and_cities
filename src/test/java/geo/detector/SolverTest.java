@@ -20,7 +20,7 @@ public class SolverTest {
 
     private Map<Integer, String> testFile(String testFile) throws IOException {
         String file = getClass().getResource("/" + testFile).getFile();
-        Map<Integer, String> answer = new Solver().readFromFile(file).Answer();
+        Map<Integer, String> answer = new Solver().readFromFile(file).buildAnswer();
         for (int id : answer.keySet()) {
             System.out.println(id + " -> " + answer.get(id));
         }
